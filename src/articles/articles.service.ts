@@ -3,39 +3,57 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { ArticleEntity } from './entities/article.entity';
 
 @Injectable()
 export class ArticlesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createArticleDto: CreateArticleDto) {
-    return await this.prisma.article.create({ data: createArticleDto });
+    const article = await this.prisma.article.create({
+      data: createArticleDto,
+    });
+    return new ArticleEntity(article);
   }
 
   async findAll() {
-    return await this.prisma.article.findMany({ where: { published: true } });
+    const articles = await this.prisma.article.findMany({
+      where: { published: true },
+    });
+    return articles.map((article) => new ArticleEntity(article));
   }
 
   async findDrafts() {
-    return await this.prisma.article.findMany({ where: { published: false } });
+    const drafts = await this.prisma.article.findMany({
+      where: { published: false },
+    });
+    return drafts.map((draft) => new ArticleEntity(draft));
   }
 
   async findOne(id: number) {
-    const article = await this.prisma.article.findUnique({ where: { id } });
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      include: {
+        author: true,
+      },
+    });
     if (!article) {
       throw new NotFoundException(`Article with ${id} does not exist.`);
     }
-    return article;
+
+    return new ArticleEntity(article);
   }
 
   async update(id: number, updateArticleDto: UpdateArticleDto) {
-    return await this.prisma.article.update({
+    const article = await this.prisma.article.update({
       where: { id },
       data: updateArticleDto,
     });
+    return new ArticleEntity(article);
   }
 
   async remove(id: number) {
-    return await this.prisma.article.delete({ where: { id } });
+    const article = await this.prisma.article.delete({ where: { id } });
+    return new ArticleEntity(article);
   }
 }
